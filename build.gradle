@@ -10,12 +10,20 @@ base {
 version = "$project.version+${libs.versions.minecraft.get()}"
 group = project.maven_group
 
+final dataGenerationDir = file("src/main/generated")
+
 repositories {
 	// Add repositories to retrieve artifacts from in here.
 	// You should only use this when depending on other mods because
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
+}
+
+sourceSets {
+	main {
+		resources { srcDirs(dataGenerationDir.absolutePath) }
+	}
 }
 
 loom {
@@ -28,6 +36,24 @@ loom {
 			// If you shade (directly include classes, not JiJ) a dependency into your mod, include it here using one of these methods:
 			// dependency("com.example.shadowedmod:1.2.3")
 			// configuration("exampleShadedConfigurationName")
+		}
+	}
+
+	runs {
+		"dataGeneration" {
+			final buildDir = file("build/datagen")
+
+			configName = "Fabric Data Generation"
+			dataGenerationDir.mkdirs()
+			buildDir.mkdirs()
+
+			client()
+			source("main")
+			property("fabric-api.datagen")
+			property("fabric-api.datagen.strict-validation", "true")
+			property("fabric-api.datagen.output-dir", dataGenerationDir.absolutePath)
+
+			runDir("build/datagen")
 		}
 	}
 }
@@ -57,6 +83,11 @@ processResources {
 
 	filesMatching('quilt.mod.json') {
 		expand 'version': version, 'group': project.group
+	}
+
+	// If you use gradle runner, this makes you able to replace your mod id with ${id}
+	filesMatching('**/lang/*.json') {
+		expand 'id': archives_base_name
 	}
 }
 
